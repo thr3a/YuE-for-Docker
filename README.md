@@ -26,6 +26,7 @@ Metal: Step Back
 
 ## News and Updates
 
+* **2025.01.28 🫶**: Thanks to Fahd for creating a tutorial on how to quickly get started with YuE. Here is his [demonstration](https://www.youtube.com/watch?v=RSMNH9GitbA).
 * **2025.01.26 🔥**: We have released the **YuE** series.
 
 <br>
