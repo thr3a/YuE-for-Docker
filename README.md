@@ -47,9 +47,9 @@ Metal: Step Back
 pip install -r requirements.txt
 ~~```~~
 
-~~### **Important: Install FlashAttention 2**
-For saving GPU memory, **FlashAttention 2 is mandatory**. Without it, large sequence lengths will lead to out-of-memory (OOM) errors, especially on GPUs with limited memory. Install it using the following command:
-~```
+~~### **Important: Install FlashAttention 2**~~
+~~For saving GPU memory, **FlashAttention 2 is mandatory**. Without it, large sequence lengths will lead to out-of-memory (OOM) errors, especially on GPUs with limited memory. Install it using the following command:~~
+~~```
 pip install flash-attn --no-build-isolation
 ~~```~~
 ~~Before installing FlashAttention, ensure that your CUDA environment is correctly set up. ~~
