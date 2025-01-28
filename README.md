@@ -71,24 +71,35 @@ To customize the number of sessions, the interface allows you to specify the des
 
 ## Quickstart
 
+  Give unrestricted script access to powershell so venv can work:
+
+- Open an administrator powershell window
+- Type `Set-ExecutionPolicy Unrestricted` and answer A
+- Close admin powershell window
+
 ```
 # Make sure you have git-lfs installed (https://git-lfs.com)
 git lfs install
-git clone https://github.com/multimodal-art-projection/YuE.git
-
-cd YuE/inference/
-git clone https://huggingface.co/m-a-p/xcodec_mini_infer
+git clone https://github.com/sdbds/YuE-for-windows.git
 ```
+~~cd YuE/inference/~~
+~~git clone https://huggingface.co/m-a-p/xcodec_mini_infer~~
 
-Here’s a quick guide to help you generate music with **YuE** using 🤗 Transformers. Before running the code, make sure your environment is properly set up, and that all dependencies are installed.
+~~Here’s a quick guide to help you generate music with **YuE** using 🤗 Transformers. Before running the code, make sure your environment is properly set up, and that all dependencies are installed.~~
+
+powershell run with `1、install-uv-qinglong.ps1` (right click then choose `use powershell run`) auto install in one-clik
 
 ### Running the Script
+
+powershell run with `2、run.ps1` (right click then choose `use powershell run`)
+
+You can edit  `2、run.ps1` for setting args below:
 
 In the following example, customize the `genres` and `lyrics` in the script, then execute it to generate a song with **YuE**.
 
 Notice: Set `--run_n_segments` to the number of lyric sections if you want to generate a full song. Additionally, you can increase `--stage2_batch_size` based on your available GPU memory.
 
-```bash
+~~```bash
 cd YuE/inference/
 python infer.py \
     --stage1_model m-a-p/YuE-s1-7B-anneal-en-cot \
@@ -100,10 +111,10 @@ python infer.py \
     --output_dir ./output \
     --cuda_idx 0 \
     --max_new_tokens 3000 
-```
+~~```~~
 
 If you want to use audio prompt, enable `--use_audio_prompt`, and provide audio prompt:
-```bash
+~~```bash
 cd YuE/inference/
 python infer.py \
     --stage1_model m-a-p/YuE-s1-7B-anneal-en-icl \
@@ -118,7 +129,7 @@ python infer.py \
     --audio_prompt_path {YOUR_AUDIO_FILE} \
     --prompt_start_time 0 \
     --prompt_end_time 30 
-```
+~~```~~
 
 
 ---
