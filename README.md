@@ -33,28 +33,34 @@ Metal: Step Back
 
 ## Requirements
 
-Python >=3.8 is recommended.
+  Give unrestricted script access to powershell so venv can work:
 
-Install dependencies with the following command:
+- Open an administrator powershell window
+- Type `Set-ExecutionPolicy Unrestricted` and answer A
+- Close admin powershell window
 
-```
+~~Python >=3.8 is recommended.~~
+
+~~Install dependencies with the following command:~~
+
+~~```
 pip install -r requirements.txt
-```
+~~```~~
 
-### **Important: Install FlashAttention 2**
+~~### **Important: Install FlashAttention 2**
 For saving GPU memory, **FlashAttention 2 is mandatory**. Without it, large sequence lengths will lead to out-of-memory (OOM) errors, especially on GPUs with limited memory. Install it using the following command:
-```
+~```
 pip install flash-attn --no-build-isolation
-```
-Before installing FlashAttention, ensure that your CUDA environment is correctly set up. 
-For example, if you are using CUDA 11.8:
-- If using a module system:
-``` module load cuda11.8/toolkit/11.8.0 ```
-- Or manually configure CUDA in your shell:
-```
+~~```~~
+~~Before installing FlashAttention, ensure that your CUDA environment is correctly set up. ~~
+~~For example, if you are using CUDA 11.8:~~
+~~- If using a module system:~~
+~~``` module load cuda11.8/toolkit/11.8.0 ```~~
+~~- Or manually configure CUDA in your shell:~~
+~~```
     export PATH=/usr/local/cuda-11.8/bin:$PATH
     export LD_LIBRARY_PATH=/usr/local/cuda-11.8/lib64:$LD_LIBRARY_PATH
-```
+~~```~~
 
 ---
 
@@ -70,12 +76,6 @@ To customize the number of sessions, the interface allows you to specify the des
 ---
 
 ## Quickstart
-
-  Give unrestricted script access to powershell so venv can work:
-
-- Open an administrator powershell window
-- Type `Set-ExecutionPolicy Unrestricted` and answer A
-- Close admin powershell window
 
 ```
 # Make sure you have git-lfs installed (https://git-lfs.com)
