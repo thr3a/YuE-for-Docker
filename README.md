@@ -85,19 +85,19 @@ On an **RTX 4090 GPU**, generating 30s audio takes approximately **360 seconds**
 Quick start **VIDEO TUTORIAL** by Fahd: [Link here](https://www.youtube.com/watch?v=RSMNH9GitbA). We recommend watching this video if you are not familiar with machine learning or the command line.
 
 ### 1. Install environment and dependencies
-~~Make sure properly install flash attention 2 to reduce VRAM usage. ~~
-~~```bash
-# We recommend using conda to create a new environment.
-conda create -n yue python=3.8 # Python >=3.8 is recommended.
-conda activate yue
-# install cuda >= 11.8
-conda install pytorch torchvision torchaudio cudatoolkit=11.8 -c pytorch -c nvidia
-pip install -r requirements.txt
+~~Make sure properly install flash attention 2 to reduce VRAM usage.~~ 
+~~```bash~~
+~~# We recommend using conda to create a new environment.~~
+~~conda create -n yue python=3.8 # Python >=3.8 is recommended.
+conda activate yue~~
+~~# install cuda >= 11.8~~
+~~conda install pytorch torchvision torchaudio cudatoolkit=11.8 -c pytorch -c nvidia
+pip install -r requirements.txt~~
 
-# For saving GPU memory, FlashAttention 2 is mandatory. 
-# Without it, long audio may lead to out-of-memory (OOM) errors.
-# Be careful about matching the cuda version and flash-attn version
-pip install flash-attn --no-build-isolation
+~~# For saving GPU memory, FlashAttention 2 is mandatory.~~
+~~# Without it, long audio may lead to out-of-memory (OOM) errors.~~
+~~# Be careful about matching the cuda version and flash-attn version
+pip install flash-attn --no-build-isolation~~
 ~~```~~
 
 ### 2. Download the infer code and tokenizer
