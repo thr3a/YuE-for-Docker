@@ -132,9 +132,8 @@ In the following example, customize the `genres` and `lyrics` in the script, the
 - LM ckpts will be automatically downloaded from huggingface. 
 
 
-~~```bash
-```bash
-# This is the CoT mode.
+~~```bash~~    
+~# This is the CoT mode.
 cd YuE/inference/
 python infer.py \
     --stage1_model m-a-p/YuE-s1-7B-anneal-en-cot \
@@ -161,8 +160,8 @@ Note:
 
 - Dual-track mode work the best, will support in the infer code soon.
 
-~~```bash
-# This is the ICL mode. Currently only mix-ICL is supported.
+~~```bash~~
+~# This is the ICL mode. Currently only mix-ICL is supported.
 cd YuE/inference/
 python infer.py \
     --stage1_model m-a-p/YuE-s1-7B-anneal-en-icl \
