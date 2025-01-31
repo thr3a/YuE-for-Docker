@@ -111,7 +111,7 @@ Write-Output "Installing main requirements"
 ~/.local/bin/uv pip sync requirements-uv.txt --index-strategy unsafe-best-match
 Check "Install main requirements failed"
 
-huggingface-cli download m-a-p/xcodec_mini_infer --local-dir inference/xcodec_mini_infer
+huggingface-cli download m-a-p/xcodec_mini_infer --local-dir inference/xcodec_mini_infer --exclude "*soundstream_hubert_new.py"
 
 Write-Output "Install finished"
 Read-Host | Out-Null ;
