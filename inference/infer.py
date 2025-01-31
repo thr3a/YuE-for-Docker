@@ -225,8 +225,10 @@ def main(args):
         prompt_ids = torch.as_tensor(prompt_ids).unsqueeze(0).to(device)
         if i == 1:
             input_ids = prompt_ids
-        else:
+        elif raw_output is not None:
             input_ids = torch.cat([raw_output, prompt_ids], dim=1)
+        else:
+            input_ids = prompt_ids
             
         # Use window slicing in case output sequence exceeds the context of model
         max_context = 16384 - max_new_tokens - 1
@@ -257,7 +259,7 @@ def main(args):
             if output_seq[0][-1].item() != mmtokenizer.eoa:
                 tensor_eoa = torch.as_tensor([[mmtokenizer.eoa]]).to(model.device)
                 output_seq = torch.cat((output_seq, tensor_eoa), dim=1)
-        if i > 1:
+        if raw_output is not None:
             raw_output = torch.cat(
                 [raw_output, prompt_ids, output_seq[:, input_ids.shape[-1] :]], dim=1
             )
