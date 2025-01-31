@@ -3,15 +3,20 @@
 $profile_set = 3 #5 for highvarm, 4 for high, 3 for normal,2 for low, 1 for ultra
 
 # Model arguments
+#m-a-p/YuE-s1-7B-anneal-en-cot |  m-a-p/YuE-s1-7B-anneal-en-icl   | m-a-p/YuE-s1-7B-anneal-jp-kr-cot 
+#m-a-p/YuE-s1-7B-anneal-jp-kr-icl |  m-a-p/YuE-s1-7B-anneal-zh-cot |  m-a-p/YuE-s1-7B-anneal-zh-icl 
+#Alissonerdx/YuE-s1-7B-anneal-en-cot-int8 | Alissonerdx/YuE-s1-7B-anneal-zh-cot-int8  | Alissonerdx/YuE-s1-7B-anneal-jp-kr-cot 
 $stage1_model = "m-a-p/YuE-s1-7B-anneal-en-cot"
 $stage2_model = "m-a-p/YuE-s2-1B-general"
-$max_new_tokens = 3000
+$max_new_tokens = 3000 #1~16384
 $run_n_segments = 2
 $stage2_batch_size = 4
 
 # Prompt arguments
 $genre_txt = "prompt_examples/genre.txt"  # Required
 $lyrics_txt = "prompt_examples/lyrics.txt"  # Required
+
+# ICL model need
 $use_audio_prompt = $false
 $audio_prompt_path = ""
 $prompt_start_time = 0.0
@@ -29,7 +34,7 @@ $resume_path = "./xcodec_mini_infer/final_ckpt/ckpt_00360000.pth"
 $config_path = "./xcodec_mini_infer/decoders/config.yaml"
 $vocal_decoder_path = "./xcodec_mini_infer/decoders/decoder_131000.pth"
 $inst_decoder_path = "./xcodec_mini_infer/decoders/decoder_151000.pth"
-$rescale = $false
+$rescale = $true
 
 # Activate python venv
 Set-Location $PSScriptRoot
@@ -98,13 +103,24 @@ if ($disable_offload_model) {
 [void]$ext_args.Add("--cuda_idx=$cuda_idx")
 
 # Add XCodec and upsampler config
+if ($basic_model_config) {
+  [void]$ext_args.Add("--basic_model_config=$basic_model_config")
+}
+if ($resume_path) {
+  [void]$ext_args.Add("--resume_path=$resume_path")
+}
+if ($config_path) {
+  [void]$ext_args.Add("--config_path=$config_path")
+}
+if ($vocal_decoder_path) {
+  [void]$ext_args.Add("--vocal_decoder_path=$vocal_decoder_path")
+}
+if ($inst_decoder_path) {
+  [void]$ext_args.Add("--inst_decoder_path=$inst_decoder_path")
+}
+
 if ($rescale) {
   [void]$ext_args.Add("--rescale")
-  [void]$ext_args.Add("--basic_model_config=$basic_model_config")
-  [void]$ext_args.Add("--resume_path=$resume_path")
-  [void]$ext_args.Add("--config_path=$config_path")
-  [void]$ext_args.Add("--vocal_decoder_path=$vocal_decoder_path")
-  [void]$ext_args.Add("--inst_decoder_path=$inst_decoder_path")
 }
 
 Set-Location $PSScriptRoot/inference
