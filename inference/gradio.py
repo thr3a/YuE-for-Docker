@@ -239,6 +239,7 @@ with gr.Blocks(
                         maximum=16384,
                         value=3000,
                         step=100,
+                        info="The maximum number of tokens to generate.",
                     )
                     run_n_segments = gr.Slider(
                         label="Number of Segments",
@@ -246,6 +247,7 @@ with gr.Blocks(
                         maximum=5,
                         value=2,
                         step=1,
+                        info="The number of segments to process during the generation.",
                     )
                 with gr.Row():
                     stage2_batch_size = gr.Number(

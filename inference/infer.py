@@ -169,6 +169,7 @@ def main(args):
     end_of_segment = mmtokenizer.tokenize("[end_of_segment]")
     # Format text prompt
     run_n_segments = min(args.run_n_segments + 1, len(lyrics))
+    raw_output = None
     for i, p in enumerate(tqdm(prompt_texts[:run_n_segments])):
         section_text = p.replace("[start_of_segment]", "").replace(
             "[end_of_segment]", ""
@@ -222,7 +223,11 @@ def main(args):
             )
 
         prompt_ids = torch.as_tensor(prompt_ids).unsqueeze(0).to(device)
-        input_ids = torch.cat([raw_output, prompt_ids], dim=1) if i > 1 else prompt_ids
+        if i == 1:
+            input_ids = prompt_ids
+        else:
+            input_ids = torch.cat([raw_output, prompt_ids], dim=1)
+            
         # Use window slicing in case output sequence exceeds the context of model
         max_context = 16384 - max_new_tokens - 1
         if input_ids.shape[-1] > max_context:
