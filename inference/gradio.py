@@ -3,6 +3,8 @@ import os
 from inference.infer import create_args, main
 from pathlib import Path
 import torch
+import json
+import random
 
 
 def generate_music(
@@ -53,94 +55,260 @@ def generate_music(
         cuda_idx=int(cuda_idx),
     )
 
-
+    # Generate music
     output_audio = main(args)
 
     # Return the generated audio files
     return output_audio
 
 
+def load_tags():
+    try:
+        tags_file = Path(__file__).parent.parent / "top_200_tags.json"
+        with open(tags_file, "r", encoding="utf-8") as f:
+            tags_data = json.load(f)
+            # Combine all values from each category and remove duplicates
+            all_tags = []
+            for category_tags in tags_data.values():
+                all_tags.extend(tag.lower() for tag in category_tags)
+            # Remove duplicates while preserving order
+            return list(dict.fromkeys(all_tags))
+    except (FileNotFoundError, json.JSONDecodeError):
+        # Fallback tags if file is not found or invalid
+        return [
+            "pop",
+            "rock",
+            "jazz",
+            "classical",
+            "electronic",
+            "hip hop",
+            "r&b",
+            "country",
+            "folk",
+            "metal",
+            "indie",
+            "blues",
+        ]
+
+
+def get_random_tags(n=12):
+    tags = load_tags()
+    n = min(n, len(tags))  # Ensure we don't try to sample more than available
+    return random.sample(tags, n)
+
+
+def toggle_tag(current_tags, tag_to_toggle):
+    if not current_tags:
+        return tag_to_toggle, gr.update(variant="primary")
+
+    current_tag_list = current_tags.split()
+    if tag_to_toggle in current_tag_list:
+        # Remove the tag if it exists
+        current_tag_list = [t for t in current_tag_list if t != tag_to_toggle]
+        new_variant = "secondary"
+    else:
+        # Add the tag if it doesn't exist
+        current_tag_list.append(tag_to_toggle)
+        new_variant = "primary"
+
+    return " ".join(current_tag_list), gr.update(variant=new_variant)
+
+
+def refresh_tag_buttons():
+    tags = get_random_tags()
+    return [
+        gr.update(value=tag, variant="secondary") for tag in tags
+    ] + [  # for buttons
+        gr.update(value=tag) for tag in tags
+    ]  # for hidden textboxes
+
+
+def clear_tags(genre_txt):
+    return "", *[gr.update(variant="secondary") for _ in range(12)]
+
+
 # Create the Gradio interface
-with gr.Blocks() as demo:
-    gr.Markdown("# YuE Music Generation Interface")
+with gr.Blocks(
+    theme=gr.themes.Glass(
+        primary_hue="green",
+        secondary_hue="violet",
+        neutral_hue="slate",
+    )
+) as demo:
+    gr.Markdown(
+        """
+        # YuE Music Generation Interface
+        Generate music with lyrics and genre tags using the YuE model.
+
+        <div align="center">
+            <strong>Ruibin Yuan,Hanfeng Lin,Shawn Guo,Ge Zhang,Jiahao Pan,Yongyi Zang,Haohe Liu,Xingjian Du,Xeron Du,Zhen Ye,Tianyu Zheng,Yinghao Ma,Minghao Liu,Lijun Yu,Zeyue Tian,Ziya Zhou,Liumeng Xue,Xingwei Qu,Yizhi Li,Tianhao Shen,Ziyang Ma,Shangda Wu,Jun Zhan,Chunhui Wang,Yatian Wang,Xiaohuan Zhou,Xiaowei Chi,Xinyue Zhang,Zhenzhu Yang,Yiming Liang,Xiangzhou Wang,Shansong Liu,Lingrui Mei,Peng Li,Yong Chen,Chenghua Lin,Xie Chen,Gus Xia,Zhaoxiang Zhang,Chao Zhang,Wenhu Chen,Xinyu Zhou,Xipeng Qiu,Roger Dannenberg,Jiaheng Liu,Jian Yang,Stephen Huang,Wei Xue,Xu Tan,Yike Guo</strong>
+        </div>
+
+        <div align="center">
+            <strong>multimodal-art-projection HKUST</strong>
+        </div>
+
+        <div style="display:flex;justify-content:center;column-gap:4px;">
+            <a href="https://github.com/multimodal-art-projection/YuE">
+                <img src='https://img.shields.io/badge/GitHub-Repo-blue'>
+            </a> 
+            <a href="https://x.com/bdsqlsz">
+                <img src="https://img.shields.io/twitter/follow/bdsqlsz">
+            </a>
+        </div>
+        """
+    )
 
     with gr.Row():
-        with gr.Column():
-            genre_txt = gr.Textbox(
-                label="Genre Tags",
-                placeholder="Enter genre tags here",
-            )
-            lyrics_txt = gr.Textbox(
-                label="Lyrics",
-                placeholder="Enter lyrics here",
-                lines=10,
-            )
-            stage1_model = gr.Dropdown(
-                label="Stage 1 Model",
-                choices=[
-                    "m-a-p/YuE-s1-7B-anneal-en-cot",
-                    "m-a-p/YuE-s1-7B-anneal-en-icl",
-                    "m-a-p/YuE-s1-7B-anneal-jp-kr-cot",
-                    "m-a-p/YuE-s1-7B-anneal-jp-kr-icl",
-                    "m-a-p/YuE-s1-7B-anneal-zh-cot",
-                    "m-a-p/YuE-s1-7B-anneal-zh-icl",
-                    "Alissonerdx/YuE-s1-7B-anneal-en-cot-int8",
-                    "Alissonerdx/YuE-s1-7B-anneal-en-icl-int8",
-                    "Alissonerdx/YuE-s1-7B-anneal-zh-cot-int8",
-                    "Alissonerdx/YuE-s1-7B-anneal-zh-icl-int8",
-                    "Alissonerdx/YuE-s1-7B-anneal-jp-kr-cot-int8",
-                    "Alissonerdx/YuE-s1-7B-anneal-jp-kr-icl-int8",
-                ],
-                value="m-a-p/YuE-s1-7B-anneal-en-cot",
-            )
-            stage2_model = gr.Dropdown(
-                label="Stage 2 Model",
-                choices=[
-                    "m-a-p/YuE-s2-1B-general",
-                ],
-                value="m-a-p/YuE-s2-1B-general",
-            )
-            max_new_tokens = gr.Slider(
-                label="Max New Tokens", minimum=1, maximum=16384, value=3000, step=100
-            )
-            run_n_segments = gr.Slider(
-                label="Number of Segments", minimum=1, maximum=5, value=2, step=1
-            )
-            with gr.Row():
-                stage2_batch_size = gr.Number(
-                    label="Stage 2 Batch Size", value=4, precision=0
-                )
-                keep_intermediate = gr.Checkbox(
-                    label="Keep Intermediate Files", value=True
-                )
-                disable_offload_model = gr.Checkbox(
-                    label="Disable Offload Model", value=True
-                )
-                rescale = gr.Checkbox(label="Rescale Audio", value=False)
-                cuda_idx = gr.Radio(
-                    label="CUDA Index",
-                    choices=[str(i) for i in range(torch.cuda.device_count())],
-                    value="0",
-                    type="index",
+        with gr.Column(scale=1):
+            with gr.Group():
+                gr.Markdown("### Input Parameters")
+                with gr.Row():
+                    genre_txt = gr.Textbox(
+                        label="Genre Tags", placeholder="Enter genre tags here", scale=4
+                    )
+                with gr.Row():
+                    gr.Markdown("### Suggested Tags")
+                    refresh_tags = gr.Button(
+                        "🎲",
+                        size="sm",
+                        variant="primary",
+                        scale=0.1,
+                        min_width=1,
+                    )
+                    clear_tags_btn = gr.Button(
+                        "🗑️",
+                        size="sm",
+                        variant="primary",
+                        scale=0.1,
+                        min_width=1,
+                    )
+                with gr.Row():
+                    tag_buttons = []
+                    tag_values = []
+                    for tag in get_random_tags():
+                        tag_value = gr.Textbox(value=tag, visible=False)
+                        btn = gr.Button(tag, size="md", variant="secondary")
+                        btn.click(
+                            fn=toggle_tag,
+                            inputs=[genre_txt, tag_value],
+                            outputs=[genre_txt, btn],
+                        )
+                        tag_buttons.append(btn)
+                        tag_values.append(tag_value)
+                lyrics_txt = gr.Textbox(
+                    label="Lyrics",
+                    placeholder="Enter lyrics here",
+                    lines=10,
                 )
 
-        with gr.Column():
-            use_audio_prompt = gr.Checkbox(label="Use Audio Prompt")
-            audio_prompt_file = gr.Audio(
-                label="Audio Prompt File", type="filepath", visible=False
-            )
-            prompt_start_time = gr.Number(
-                label="Prompt Start Time (s)",
-                value=0.0,
-                visible=False,
-                interactive=True,
-            )
-            prompt_end_time = gr.Number(
-                label="Prompt End Time (s)", value=30.0, visible=False, interactive=True
-            )
+            with gr.Group():
+                gr.Markdown("### Model Settings")
+                stage1_model = gr.Dropdown(
+                    label="Stage 1 Model",
+                    choices=[
+                        "m-a-p/YuE-s1-7B-anneal-en-cot",
+                        "m-a-p/YuE-s1-7B-anneal-en-icl",
+                        "m-a-p/YuE-s1-7B-anneal-jp-kr-cot",
+                        "m-a-p/YuE-s1-7B-anneal-jp-kr-icl",
+                        "m-a-p/YuE-s1-7B-anneal-zh-cot",
+                        "m-a-p/YuE-s1-7B-anneal-zh-icl",
+                        "Alissonerdx/YuE-s1-7B-anneal-en-cot-int8",
+                        "Alissonerdx/YuE-s1-7B-anneal-en-icl-int8",
+                        "Alissonerdx/YuE-s1-7B-anneal-zh-cot-int8",
+                        "Alissonerdx/YuE-s1-7B-anneal-zh-icl-int8",
+                        "Alissonerdx/YuE-s1-7B-anneal-jp-kr-cot-int8",
+                        "Alissonerdx/YuE-s1-7B-anneal-jp-kr-icl-int8",
+                    ],
+                    value="m-a-p/YuE-s1-7B-anneal-en-cot",
+                )
+                stage2_model = gr.Dropdown(
+                    label="Stage 2 Model",
+                    choices=[
+                        "m-a-p/YuE-s2-1B-general",
+                    ],
+                    value="m-a-p/YuE-s2-1B-general",
+                )
+        with gr.Column(scale=1):
+            with gr.Group():
+                gr.Markdown("### Generation Settings")
+                with gr.Row():
+                    max_new_tokens = gr.Slider(
+                        label="Max New Tokens",
+                        minimum=1,
+                        maximum=16384,
+                        value=3000,
+                        step=100,
+                    )
+                    run_n_segments = gr.Slider(
+                        label="Number of Segments",
+                        minimum=1,
+                        maximum=5,
+                        value=2,
+                        step=1,
+                    )
+                with gr.Row():
+                    stage2_batch_size = gr.Number(
+                        label="Stage 2 Batch Size",
+                        value=round(
+                            torch.cuda.get_device_properties(0).total_memory
+                            / (1024 * 1024 * 1024)
+                        )
+                        / 6,
+                        precision=0,
+                        minimum=1,
+                        maximum=10,
+                        info="Recommended value depends on your GPU memory. Default is VRAM(GB)/6",
+                    )
+                    cuda_idx = gr.Radio(
+                        label="CUDA Index",
+                        choices=[str(i) for i in range(torch.cuda.device_count())],
+                        value="0",
+                        type="index",
+                    )
+
+                with gr.Row():
+                    with gr.Column(scale=1):
+                        keep_intermediate = gr.Checkbox(
+                            label="Keep Intermediate Files", value=True
+                        )
+                        disable_offload_model = gr.Checkbox(
+                            label="Disable Offload Model", value=True
+                        )
+                    with gr.Column(scale=1):
+                        rescale = gr.Checkbox(label="Rescale Audio", value=False)
+
+                        use_audio_prompt = gr.Checkbox(
+                            label="Use Audio Prompt", value=False
+                        )
+
+            with gr.Group():
+                gr.Markdown("### Audio Prompt Settings")
+                audio_prompt_file = gr.Audio(
+                    label="Audio Prompt File", type="filepath", visible=False
+                )
+                with gr.Row():
+                    prompt_start_time = gr.Number(
+                        label="Prompt Start Time (s)",
+                        value=0.0,
+                        visible=False,
+                        interactive=True,
+                    )
+                    prompt_end_time = gr.Number(
+                        label="Prompt End Time (s)",
+                        value=30.0,
+                        visible=False,
+                        interactive=True,
+                    )
+
             output_dir = gr.Textbox(label="Output Directory", value="./output")
 
-            generate_btn = gr.Button("Generate Music")
+            generate_btn = gr.Button(
+                "Generate Music 🎵",
+                variant="primary",
+                scale=2,
+                size="lg",
+            )
             output_audio = gr.Audio(label="Generated Music")
 
     with gr.Row():
@@ -247,6 +415,20 @@ I won't back down""",
         outputs=[audio_prompt_file],
     )
     use_audio_prompt.change(
+        fn=lambda x: gr.update(
+            choices=(
+                [m for m in stage1_model.choices if "icl" in m[0].lower()]
+                if x
+                else stage1_model.choices
+            ),
+            value=(
+                stage1_model.value.replace("cot", "icl") if x else stage1_model.value
+            ),
+        ),
+        inputs=[use_audio_prompt],
+        outputs=[stage1_model],
+    )
+    use_audio_prompt.change(
         fn=lambda x: gr.update(visible=x),
         inputs=[use_audio_prompt],
         outputs=[prompt_start_time],
@@ -286,6 +468,19 @@ I won't back down""",
             rescale,
         ],
         outputs=[output_audio],
+    )
+
+    # Connect refresh button to tag buttons
+    refresh_tags.click(
+        fn=refresh_tag_buttons,
+        outputs=[*tag_buttons, *tag_values],
+    )
+
+    # Connect clear button to clear tags function
+    clear_tags_btn.click(
+        fn=clear_tags,
+        inputs=[genre_txt],
+        outputs=[genre_txt, *tag_buttons],
     )
 
 if __name__ == "__main__":
