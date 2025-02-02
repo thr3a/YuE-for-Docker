@@ -7,18 +7,21 @@ sys.path.append(os.path.join(current_dir, "xcodec_mini_infer"))
 sys.path.append(os.path.join(current_dir, "xcodec_mini_infer", "descriptaudiocodec"))
 sys.path.append(current_dir)  # Add current directory to path
 
+import re
+import random
+import uuid
+import copy
+from tqdm import tqdm
+from collections import Counter
 import argparse
-import torch
 import numpy as np
-import json
-from omegaconf import OmegaConf
+import torch
 import torchaudio
 from torchaudio.transforms import Resample
 import soundfile as sf
-
-import uuid
-from tqdm import tqdm
 from einops import rearrange
+from transformers import AutoTokenizer, AutoModelForCausalLM, LogitsProcessor, LogitsProcessorList
+from omegaconf import OmegaConf
 from codecmanipulator import CodecManipulator
 from mmtokenizer import _MMSentencePieceTokenizer
 from transformers import (
@@ -476,332 +479,94 @@ def main(args):
             stage2_result.append(output_filename)
         return stage2_result
 
-    stage2_result = stage2_inference(
-        model_stage2,
-        stage1_output_set,
-        stage2_output_dir,
-        batch_size=args.stage2_batch_size,
-    )
-    print(stage2_result)
-    print("Stage 2 DONE.\n")
-
-    # convert audio tokens to audio
-    def save_audio(wav: torch.Tensor, path, sample_rate: int, rescale: bool = False):
-        folder_path = os.path.dirname(path)
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-        limit = 0.99
-        max_val = wav.abs().max()
-        wav = wav * min(limit / max_val, 1) if rescale else wav.clamp(-limit, limit)
-        torchaudio.save(
-            str(path),
-            wav,
-            sample_rate=sample_rate,
-            encoding="PCM_S",
-            bits_per_sample=16,
-        )
-
-    # reconstruct tracks
-    recons_output_dir = os.path.join(args.output_dir, "recons")
-    recons_mix_dir = os.path.join(recons_output_dir, "mix")
-    os.makedirs(recons_mix_dir, exist_ok=True)
-    tracks = []
-    for npy in stage2_result:
-        codec_result = np.load(npy)
-        decodec_rlt = []
-        with torch.no_grad():
-            decoded_waveform = codec_model.decode(
-                torch.as_tensor(codec_result.astype(np.int16), dtype=torch.long)
-                .unsqueeze(0)
-                .permute(1, 0, 2)
-                .to(device)
-            )
-        decoded_waveform = decoded_waveform.cpu().squeeze(0)
-        decodec_rlt.append(torch.as_tensor(decoded_waveform))
-        decodec_rlt = torch.cat(decodec_rlt, dim=-1)
-        save_path = os.path.join(
-            recons_output_dir, os.path.splitext(os.path.basename(npy))[0] + ".mp3"
-        )
-        tracks.append(save_path)
-        save_audio(decodec_rlt, save_path, 16000)
-    # mix tracks
-    for inst_path in tracks:
-        try:
-            if (
-                inst_path.endswith(".wav") or inst_path.endswith(".mp3")
-            ) and "instrumental" in inst_path:
-                # find pair
-                vocal_path = inst_path.replace("instrumental", "vocal")
-                if not os.path.exists(vocal_path):
-                    continue
-                # mix
-                recons_mix = os.path.join(
-                    recons_mix_dir,
-                    os.path.basename(inst_path).replace("instrumental", "mixed"),
-                )
-                vocal_stem, sr = sf.read(inst_path)
-                instrumental_stem, _ = sf.read(vocal_path)
-                mix_stem = (vocal_stem + instrumental_stem) / 1
-                sf.write(recons_mix, mix_stem, sr)
-        except Exception as e:
-            print(e)
-
-    # vocoder to upsample audios
-    vocal_decoder, inst_decoder = build_codec_model(
-        args.config_path, args.vocal_decoder_path, args.inst_decoder_path
-    )
-    vocoder_output_dir = os.path.join(args.output_dir, "vocoder")
-    vocoder_stems_dir = os.path.join(vocoder_output_dir, "stems")
-    vocoder_mix_dir = os.path.join(vocoder_output_dir, "mix")
-    os.makedirs(vocoder_mix_dir, exist_ok=True)
-    os.makedirs(vocoder_stems_dir, exist_ok=True)
-    for npy in stage2_result:
-        if "instrumental" in npy:
-            # Process instrumental
-            instrumental_output = process_audio(
-                npy,
-                os.path.join(vocoder_stems_dir, "instrumental.mp3"),
-                args.rescale,
-                args,
-                inst_decoder,
-                codec_model,
-            )
-        else:
-            # Process vocal
-            vocal_output = process_audio(
-                npy,
-                os.path.join(vocoder_stems_dir, "vocal.mp3"),
-                args.rescale,
-                args,
-                vocal_decoder,
-                codec_model,
-            )
-    # mix tracks
+stage2_result = stage2_inference(model_stage2, stage1_output_set, stage2_output_dir, batch_size=args.stage2_batch_size)
+print(stage2_result)
+print('Stage 2 DONE.\n')
+# convert audio tokens to audio
+def save_audio(wav: torch.Tensor, path, sample_rate: int, rescale: bool = False):
+    folder_path = os.path.dirname(path)
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+    limit = 0.99
+    max_val = wav.abs().max()
+    wav = wav * min(limit / max_val, 1) if rescale else wav.clamp(-limit, limit)
+    torchaudio.save(str(path), wav, sample_rate=sample_rate, encoding='PCM_S', bits_per_sample=16)
+# reconstruct tracks
+recons_output_dir = os.path.join(args.output_dir, "recons")
+recons_mix_dir = os.path.join(recons_output_dir, 'mix')
+os.makedirs(recons_mix_dir, exist_ok=True)
+tracks = []
+for npy in stage2_result:
+    codec_result = np.load(npy)
+    decodec_rlt=[]
+    with torch.no_grad():
+        decoded_waveform = codec_model.decode(torch.as_tensor(codec_result.astype(np.int16), dtype=torch.long).unsqueeze(0).permute(1, 0, 2).to(device))
+    decoded_waveform = decoded_waveform.cpu().squeeze(0)
+    decodec_rlt.append(torch.as_tensor(decoded_waveform))
+    decodec_rlt = torch.cat(decodec_rlt, dim=-1)
+    save_path = os.path.join(recons_output_dir, os.path.splitext(os.path.basename(npy))[0] + ".mp3")
+    tracks.append(save_path)
+    save_audio(decodec_rlt, save_path, 16000)
+# mix tracks
+for inst_path in tracks:
     try:
-        mix_output = instrumental_output + vocal_output
-        vocoder_mix = os.path.join(vocoder_mix_dir, os.path.basename(recons_mix))
-        save_audio(mix_output, vocoder_mix, 44100, args.rescale)
-        print(f"Created mix: {vocoder_mix}")
-    except RuntimeError as e:
+        if (inst_path.endswith('.wav') or inst_path.endswith('.mp3')) \
+            and 'instrumental' in inst_path:
+            # find pair
+            vocal_path = inst_path.replace('instrumental', 'vocal')
+            if not os.path.exists(vocal_path):
+                continue
+            # mix
+            recons_mix = os.path.join(recons_mix_dir, os.path.basename(inst_path).replace('instrumental', 'mixed'))
+            vocal_stem, sr = sf.read(inst_path)
+            instrumental_stem, _ = sf.read(vocal_path)
+            mix_stem = (vocal_stem + instrumental_stem) / 1
+            sf.write(recons_mix, mix_stem, sr)
+    except Exception as e:
         print(e)
-        print(
-            f"mix {vocoder_mix} failed! inst: {instrumental_output.shape}, vocal: {vocal_output.shape}"
+
+# vocoder to upsample audios
+vocal_decoder, inst_decoder = build_codec_model(args.config_path, args.vocal_decoder_path, args.inst_decoder_path)
+vocoder_output_dir = os.path.join(args.output_dir, 'vocoder')
+vocoder_stems_dir = os.path.join(vocoder_output_dir, 'stems')
+vocoder_mix_dir = os.path.join(vocoder_output_dir, 'mix')
+os.makedirs(vocoder_mix_dir, exist_ok=True)
+os.makedirs(vocoder_stems_dir, exist_ok=True)
+for npy in stage2_result:
+    if 'instrumental' in npy:
+        # Process instrumental
+        instrumental_output = process_audio(
+            npy,
+            os.path.join(vocoder_stems_dir, 'instrumental.mp3'),
+            args.rescale,
+            args,
+            inst_decoder,
+            codec_model
         )
-
-    # Post process
-
-    output_audio = os.path.join(args.output_dir, os.path.basename(recons_mix))
-
-    replace_low_freq_with_energy_matched(
-        a_file=recons_mix,  # 16kHz
-        b_file=vocoder_mix,  # 48kHz
-        c_file=output_audio,
-        cutoff_freq=5500.0,
-    )
-
-    return output_audio
-
-def create_args(
-    genre_txt: str=(Path(current_dir) / "prompt_examples/genre.txt").as_posix(),
-    lyrics_txt: str=(Path(current_dir) / "prompt_examples/lyrics.txt").as_posix(),
-    stage1_model: str = "m-a-p/YuE-s1-7B-anneal-en-cot",
-    stage2_model="m-a-p/YuE-s2-1B-general",
-    max_new_tokens: int = 3000,
-    run_n_segments: int = 2,
-    stage2_batch_size: int = 2,
-    use_audio_prompt: bool = False,
-    audio_prompt_path: str = "",
-    prompt_start_time: float = 0.0,
-    prompt_end_time: float = 30.0,
-    output_dir: str = "./output",
-    keep_intermediate: bool = False,
-    disable_offload_model: bool = True,
-    cuda_idx: int = 0,
-    basic_model_config: str = (Path(current_dir) / "xcodec_mini_infer/final_ckpt/config.yaml").as_posix(),
-    resume_path: str = (Path(current_dir) / "xcodec_mini_infer/final_ckpt/ckpt_00360000.pth").as_posix(),
-    config_path: str = (Path(current_dir) / "xcodec_mini_infer/decoders/config.yaml").as_posix(),
-    vocal_decoder_path: str = (Path(current_dir) / "xcodec_mini_infer/decoders/decoder_131000.pth").as_posix(),
-    inst_decoder_path: str = (Path(current_dir) / "xcodec_mini_infer/decoders/decoder_151000.pth").as_posix(),
-    rescale: bool = False,
-) -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    # Model Configuration:
-    parser.add_argument(
-        "--stage1_model",
-        type=str,
-        default="m-a-p/YuE-s1-7B-anneal-en-cot",
-        help="The model checkpoint path or identifier for the Stage 1 model.",
-    )
-    parser.add_argument(
-        "--stage2_model",
-        type=str,
-        default="m-a-p/YuE-s2-1B-general",
-        help="The model checkpoint path or identifier for the Stage 2 model.",
-    )
-    parser.add_argument(
-        "--max_new_tokens",
-        type=int,
-        default=3000,
-        help="The maximum number of new tokens to generate in one pass during text generation.",
-    )
-    parser.add_argument(
-        "--run_n_segments",
-        type=int,
-        default=2,
-        help="The number of segments to process during the generation.",
-    )
-    parser.add_argument(
-        "--stage2_batch_size",
-        type=int,
-        default=4,
-        help="The batch size used in Stage 2 inference.",
-    )
-    # Prompt
-    parser.add_argument(
-        "--genre_txt",
-        type=str,
-        required=True,
-        help="The file path to a text file containing genre tags that describe the musical style or characteristics (e.g., instrumental, genre, mood, vocal timbre, vocal gender). This is used as part of the generation prompt.",
-    )
-    parser.add_argument(
-        "--lyrics_txt",
-        type=str,
-        required=True,
-        help="The file path to a text file containing the lyrics for the music generation. These lyrics will be processed and split into structured segments to guide the generation process.",
-    )
-    parser.add_argument(
-        "--use_audio_prompt",
-        action="store_true",
-        help="If set, the model will use an audio file as a prompt during generation. The audio file should be specified using --audio_prompt_path.",
-    )
-    parser.add_argument(
-        "--audio_prompt_path",
-        type=str,
-        default="",
-        help="The file path to an audio file to use as a reference prompt when --use_audio_prompt is enabled.",
-    )
-    parser.add_argument(
-        "--prompt_start_time",
-        type=float,
-        default=0.0,
-        help="The start time in seconds to extract the audio prompt from the given audio file.",
-    )
-    parser.add_argument(
-        "--prompt_end_time",
-        type=float,
-        default=30.0,
-        help="The end time in seconds to extract the audio prompt from the given audio file.",
-    )
-    # Output
-    parser.add_argument(
-        "--output_dir",
-        type=str,
-        default="./output",
-        help="The directory where generated outputs will be saved.",
-    )
-    parser.add_argument(
-        "--keep_intermediate",
-        action="store_true",
-        help="If set, intermediate outputs will be saved during processing.",
-    )
-    parser.add_argument(
-        "--disable_offload_model",
-        action="store_true",
-        help="If set, the model will not be offloaded from the GPU to CPU after Stage 1 inference.",
-    )
-    parser.add_argument("--cuda_idx", type=int, default=0)
-    # Config for xcodec and upsampler
-    parser.add_argument(
-        "--basic_model_config",
-        default=(Path(current_dir) / "xcodec_mini_infer" / "final_ckpt" / "config.yaml").as_posix(),
-        help="YAML files for xcodec configurations.",
-    )
-    parser.add_argument(
-        "--resume_path",
-        default=(Path(current_dir) / "xcodec_mini_infer" / "final_ckpt" / "ckpt_00360000.pth").as_posix(),
-        help="Path to the xcodec checkpoint.",
-    )
-    parser.add_argument(
-        "--config_path",
-        type=str,
-        default=(Path(current_dir) / "xcodec_mini_infer" / "decoders" / "config.yaml").as_posix(),
-        help="Path to Vocos config file.",
-    )
-    parser.add_argument(
-        "--vocal_decoder_path",
-        type=str,
-        default=(Path(current_dir) / "xcodec_mini_infer" / "decoders" / "decoder_131000.pth").as_posix(),
-        help="Path to Vocos decoder weights.",
-    )
-    parser.add_argument(
-        "--inst_decoder_path",
-        type=str,
-        default=(Path(current_dir) / "xcodec_mini_infer" / "decoders" / "decoder_151000.pth").as_posix(),
-        help="Path to Vocos decoder weights.",
-    )
-    parser.add_argument(
-        "-r", "--rescale", action="store_true", help="Rescale output to avoid clipping."
-    )
-
-    args = parser.parse_args(
-        [
-            "--genre_txt",
-            genre_txt,
-            "--lyrics_txt",
-            lyrics_txt,
-            "--stage1_model",
-            stage1_model,
-            "--stage2_model",
-            stage2_model,
-            "--max_new_tokens",
-            str(max_new_tokens),
-            "--stage2_batch_size",
-            str(stage2_batch_size),
-            "--run_n_segments",
-            str(run_n_segments),
-            "--output_dir",
-            output_dir,
-            "--cuda_idx",
-            str(cuda_idx),
-            "--basic_model_config",
-            basic_model_config,
-            "--resume_path",
-            resume_path,
-            "--config_path",
-            config_path,
-            "--vocal_decoder_path",
-            vocal_decoder_path,
-            "--inst_decoder_path",
-            inst_decoder_path,
-        ]
-    )
-    if use_audio_prompt:
-        args.use_audio_prompt = True
-        args.audio_prompt_path = audio_prompt_path
-        args.prompt_start_time = prompt_start_time
-        args.prompt_end_time = prompt_end_time
-
-    if keep_intermediate:
-        args.keep_intermediate = True
-
-    if disable_offload_model:
-        args.disable_offload_model = True
-
-    if rescale:
-        args.rescale = True
-
-    return args, parser
-
-
-if __name__ == "__main__":
-
-    _, parser = create_args()
-
-    args = parser.parse_args()
-
-    if args.use_audio_prompt and not args.audio_prompt_path:
-        raise FileNotFoundError(
-            "Please offer audio prompt filepath using '--audio_prompt_path', when you enable 'use_audio_prompt'!"
+    else:
+        # Process vocal
+        vocal_output = process_audio(
+            npy,
+            os.path.join(vocoder_stems_dir, 'vocal.mp3'),
+            args.rescale,
+            args,
+            vocal_decoder,
+            codec_model
         )
+# mix tracks
+try:
+    mix_output = instrumental_output + vocal_output
+    vocoder_mix = os.path.join(vocoder_mix_dir, os.path.basename(recons_mix))
+    save_audio(mix_output, vocoder_mix, 44100, args.rescale)
+    print(f"Created mix: {vocoder_mix}")
+except RuntimeError as e:
+    print(e)
+    print(f"mix {vocoder_mix} failed! inst: {instrumental_output.shape}, vocal: {vocal_output.shape}")
 
-    main(args)
+# Post process
+replace_low_freq_with_energy_matched(
+    a_file=recons_mix,     # 16kHz
+    b_file=vocoder_mix,     # 48kHz
+    c_file=os.path.join(args.output_dir, os.path.basename(recons_mix)),
+    cutoff_freq=5500.0
+)
