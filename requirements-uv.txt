@@ -3,7 +3,10 @@
 absl-py==2.1.0
     # via tensorboard
 accelerate==1.3.0
-    # via -r ./requirements.txt
+    # via
+    #   -r ./requirements.txt
+    #   mmgp
+    #   peft
 aiofiles==23.2.1
     # via gradio
 annotated-types==0.7.0
@@ -119,6 +122,8 @@ huggingface-hub==0.27.1
     #   accelerate
     #   gradio
     #   gradio-client
+    #   optimum-quanto
+    #   peft
     #   tokenizers
     #   transformers
 idna==3.10
@@ -167,6 +172,8 @@ matplotlib-inline==0.1.7
     # via ipython
 mdurl==0.1.2
     # via markdown-it-py
+mmgp==3.1.4.post15
+    # via -r ./requirements.txt
 mpmath==1.3.0
     # via sympy
 msgpack==1.1.0
@@ -174,7 +181,9 @@ msgpack==1.1.0
 networkx==3.4.2
     # via torch
 ninja==1.11.1.3
-    # via -r ./requirements.txt
+    # via
+    #   -r ./requirements.txt
+    #   optimum-quanto
 numba==0.61.0
     # via librosa
 numpy==1.26.4
@@ -189,7 +198,9 @@ numpy==1.26.4
     #   librosa
     #   matplotlib
     #   numba
+    #   optimum-quanto
     #   pandas
+    #   peft
     #   pyloudnorm
     #   pystoi
     #   scikit-learn
@@ -201,6 +212,8 @@ numpy==1.26.4
     #   transformers
 omegaconf==2.3.0
     # via -r ./requirements.txt
+optimum-quanto==0.2.6
+    # via mmgp
 orjson==3.10.15
     # via gradio
 packaging==24.2
@@ -212,6 +225,7 @@ packaging==24.2
     #   huggingface-hub
     #   lazy-loader
     #   matplotlib
+    #   peft
     #   pooch
     #   tensorboard
     #   transformers
@@ -219,6 +233,8 @@ pandas==2.2.3
     # via gradio
 parso==0.8.4
     # via jedi
+peft==0.14.0
+    # via mmgp
 pillow==11.1.0
     # via
     #   gradio
@@ -234,7 +250,10 @@ protobuf==3.19.6
     #   descript-audiotools
     #   tensorboard
 psutil==6.1.1
-    # via accelerate
+    # via
+    #   accelerate
+    #   mmgp
+    #   peft
 pure-eval==0.2.3
     # via stack-data
 pycparser==2.22
@@ -274,6 +293,7 @@ pyyaml==6.0.2
     #   gradio
     #   huggingface-hub
     #   omegaconf
+    #   peft
     #   transformers
 randomname==0.2.1
     # via descript-audiotools
@@ -295,6 +315,9 @@ safehttpx==0.1.6
 safetensors==0.5.2
     # via
     #   accelerate
+    #   mmgp
+    #   optimum-quanto
+    #   peft
     #   transformers
 scikit-learn==1.6.1
     # via librosa
@@ -358,6 +381,9 @@ torch==2.5.1+cu124
     #   descript-audiotools
     #   flash-attn
     #   julius
+    #   mmgp
+    #   optimum-quanto
+    #   peft
     #   torch-stoi
     #   torchaudio
 torch-stoi==0.2.3
@@ -374,13 +400,16 @@ tqdm==4.67.1
     #   descript-audio-codec
     #   descript-audiotools
     #   huggingface-hub
+    #   peft
     #   transformers
 traitlets==5.14.3
     # via
     #   ipython
     #   matplotlib-inline
 transformers==4.48.1
-    # via -r ./requirements.txt
+    # via
+    #   -r ./requirements.txt
+    #   peft
 triton @ https://github.com/woct0rdho/triton-windows/releases/download/v3.1.0-windows.post9/triton-3.1.0-cp310-cp310-win_amd64.whl
     # via -r ./requirements.txt
 typer==0.15.1

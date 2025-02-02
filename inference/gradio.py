@@ -19,11 +19,15 @@ def generate_music(
     audio_prompt_file,
     prompt_start_time,
     prompt_end_time,
+    use_dual_tracks_prompt,
+    vocal_track_prompt_path,
+    instrumental_track_prompt_path,
     output_dir,
     keep_intermediate,
-    disable_offload_model,
     cuda_idx,
+    seed,
     rescale,
+    profile,
 ):
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
@@ -48,11 +52,15 @@ def generate_music(
         audio_prompt_path=audio_prompt_path,
         prompt_start_time=prompt_start_time,
         prompt_end_time=prompt_end_time,
+        use_dual_tracks_prompt=use_dual_tracks_prompt,
+        vocal_track_prompt_path=vocal_track_prompt_path,
+        instrumental_track_prompt_path=instrumental_track_prompt_path,
         output_dir=output_dir,
         keep_intermediate=keep_intermediate,
-        disable_offload_model=disable_offload_model,
         rescale=rescale,
         cuda_idx=int(cuda_idx),
+        seed=int(seed),
+        profile=profile,
     )
 
     # Generate music
@@ -123,7 +131,7 @@ def refresh_tag_buttons():
     ]  # for hidden textboxes
 
 
-def clear_tags(genre_txt):
+def clear_tags():
     return "", *[gr.update(variant="secondary") for _ in range(12)]
 
 
@@ -268,20 +276,38 @@ with gr.Blocks(
                         value="0",
                         type="index",
                     )
+                    profile = gr.Radio(
+                        label="Profile",
+                        choices=[1,2,3,4,5],
+                        value=3,
+                        type="value",
+                        info="Higher values will cost less VRAM but may be slower.",
+                    )
+
+                with gr.Row():
+                    seed = gr.Slider(
+                        label="Seed",
+                        value=42,
+                        minimum=0,
+                        maximum=999999999999,
+                        step=1,
+                        interactive=True,
+                        info="Random seed for reproducibility.",
+                    )
 
                 with gr.Row():
                     with gr.Column(scale=1):
                         keep_intermediate = gr.Checkbox(
                             label="Keep Intermediate Files", value=True
                         )
-                        disable_offload_model = gr.Checkbox(
-                            label="Disable Offload Model", value=True
-                        )
-                    with gr.Column(scale=1):
-                        rescale = gr.Checkbox(label="Rescale Audio", value=False)
-
                         use_audio_prompt = gr.Checkbox(
                             label="Use Audio Prompt", value=False
+                        )
+
+                    with gr.Column(scale=1):
+                        rescale = gr.Checkbox(label="Rescale Audio", value=False)
+                        use_dual_tracks_prompt = gr.Checkbox(
+                            label="Use Dual Tracks Prompt", value=False
                         )
 
             with gr.Group():
@@ -289,6 +315,21 @@ with gr.Blocks(
                 audio_prompt_file = gr.Audio(
                     label="Audio Prompt File", type="filepath", visible=False
                 )
+                with gr.Row():
+                    vocal_track_prompt_path = gr.Audio(
+                        label="Vocal Track Prompt File",
+                        type="filepath",
+                        visible=False,
+                        min_width=80,
+                        scale=0.5,
+                    )
+                    instrumental_track_prompt_path = gr.Audio(
+                        label="Instrumental Track Prompt File",
+                        type="filepath",
+                        visible=False,
+                        min_width=80,
+                        scale=0.5,
+                    )
                 with gr.Row():
                     prompt_start_time = gr.Number(
                         label="Prompt Start Time (s)",
@@ -432,12 +473,50 @@ I won't back down""",
     )
     use_audio_prompt.change(
         fn=lambda x: gr.update(visible=x),
-        inputs=[use_audio_prompt],
+        inputs=[use_audio_prompt or use_dual_tracks_prompt],
         outputs=[prompt_start_time],
     )
+
     use_audio_prompt.change(
         fn=lambda x: gr.update(visible=x),
-        inputs=[use_audio_prompt],
+        inputs=[use_audio_prompt or use_dual_tracks_prompt],
+        outputs=[prompt_end_time],
+    )
+
+    use_dual_tracks_prompt.change(
+        fn=lambda x: gr.update(visible=x),
+        inputs=[use_dual_tracks_prompt],
+        outputs=[vocal_track_prompt_path],
+    )
+
+    use_dual_tracks_prompt.change(
+        fn=lambda x: gr.update(visible=x),
+        inputs=[use_dual_tracks_prompt],
+        outputs=[instrumental_track_prompt_path],
+    )
+
+    use_dual_tracks_prompt.change(
+        fn=lambda x: gr.update(
+            choices=(
+                [m for m in stage1_model.choices if "icl" in m[0].lower()]
+                if x
+                else stage1_model.choices
+            ),
+            value=(
+                stage1_model.value.replace("cot", "icl") if x else stage1_model.value
+            ),
+        ),
+        inputs=[use_dual_tracks_prompt],
+        outputs=[stage1_model],
+    )
+    use_dual_tracks_prompt.change(
+        fn=lambda x: gr.update(visible=x),
+        inputs=[use_dual_tracks_prompt or use_audio_prompt],
+        outputs=[prompt_start_time],
+    )
+    use_dual_tracks_prompt.change(
+        fn=lambda x: gr.update(visible=x),
+        inputs=[use_dual_tracks_prompt or use_audio_prompt],
         outputs=[prompt_end_time],
     )
 
@@ -463,11 +542,15 @@ I won't back down""",
             audio_prompt_file,
             prompt_start_time,
             prompt_end_time,
+            use_dual_tracks_prompt,
+            vocal_track_prompt_path,
+            instrumental_track_prompt_path,
             output_dir,
             keep_intermediate,
-            disable_offload_model,
             cuda_idx,
+            seed,
             rescale,
+            profile,
         ],
         outputs=[output_audio],
     )
@@ -481,7 +564,6 @@ I won't back down""",
     # Connect clear button to clear tags function
     clear_tags_btn.click(
         fn=clear_tags,
-        inputs=[genre_txt],
         outputs=[genre_txt, *tag_buttons],
     )
 
