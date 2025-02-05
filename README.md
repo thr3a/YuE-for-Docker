@@ -19,7 +19,7 @@ YuE is a groundbreaking series of open-source foundation models designed for mus
 
 ## News and Updates
 
-* **2025.01.30 🔥 Inference Update**: We now support dual-track ICL mode. You can try to prompt the model with a ref song.
+* **2025.01.30 🔥 Inference Update**: We now support dual-track ICL mode! You can prompt the model with a reference song, and it will generate a new song in a similar style (voice cloning [demo by @abrakjamson](https://x.com/abrakjamson/status/1885932885406093538), music style transfer [demo by @cocktailpeanut](https://x.com/cocktailpeanut/status/1886456240156348674), etc.). Try it out! 🔥🔥🔥 P.S. Be sure to check out the demos first—they're truly impressive. 
 
 * **2025.01.30 🔥 Announcement: A New Era Under Apache 2.0 🔥**: We are thrilled to announce that, in response to overwhelming requests from our community, **YuE** is now officially licensed under the **Apache 2.0** license. We sincerely hope this marks a watershed moment—akin to what Stable Diffusion and LLaMA have achieved in their respective fields—for music generation and creative AI. 🎉🎉🎉
 
@@ -61,11 +61,14 @@ pip install flash-attn --no-build-isolation
 ~~```~~
 ---
 ## TODOs📋
-- [ ] Support gradio interface. https://github.com/multimodal-art-projection/YuE/issues/1
-- [ ] Support transformers tensor parallel. https://github.com/multimodal-art-projection/YuE/issues/7
-- [ ] Online serving on huggingface space.
+- [ ] Allow `--rp` to customize repetition penalty. https://github.com/multimodal-art-projection/YuE/issues/45
 - [ ] Example finetune code for enabling BPM control using 🤗 Transformers.
 - [ ] Support stemgen mode https://github.com/multimodal-art-projection/YuE/issues/21
+- [ ] Support Colab https://github.com/multimodal-art-projection/YuE/issues/50
+- [ ] Support llama.cpp https://github.com/ggerganov/llama.cpp/issues/11467
+- [ ] Support gradio interface. https://github.com/multimodal-art-projection/YuE/issues/1
+- [ ] Online serving on huggingface space.
+- [ ] Support transformers tensor parallel. https://github.com/multimodal-art-projection/YuE/issues/7
 - [x] Support dual-track ICL mode.
 - [x] Fix "instrumental" naming bug in output files. https://github.com/multimodal-art-projection/YuE/pull/26
 - [x] Support seeding https://github.com/multimodal-art-projection/YuE/issues/20
@@ -76,8 +79,7 @@ pip install flash-attn --no-build-isolation
 
 ### **GPU Memory**
 YuE requires significant GPU memory for generating long sequences. Below are the recommended configurations:
-
-- **For GPUs with 24GB memory or less**: Run **up to 2 sessions** concurrently to avoid out-of-memory (OOM) errors.
+- **For GPUs with 24GB memory or less**: Run **up to 2 sessions** to avoid out-of-memory (OOM) errors. Thanks to the community, there are [YuE-exllamav2](https://github.com/sgsdxzy/YuE-exllamav2) and [YuEGP](https://github.com/deepbeepmeep/YuEGP) for those with limited GPU resources. While both enhance generation speed and coherence, they may compromise musicality. (P.S. Better prompts & ICL help!)
 - **For full song generation** (many sessions, e.g., 4 or more): Use **GPUs with at least 80GB memory**. i.e. H800, A100, or multiple RTX4090s with tensor parallel.
 
 To customize the number of sessions, the interface allows you to specify the desired session count. By default, the model runs **2 sessions** (1 verse + 1 chorus) to avoid OOM issue.
@@ -90,6 +92,8 @@ On an **RTX 4090 GPU**, generating 30s audio takes approximately **360 seconds**
 
 ## Quickstart
 Quick start **VIDEO TUTORIAL** by Fahd: [Link here](https://www.youtube.com/watch?v=RSMNH9GitbA). We recommend watching this video if you are not familiar with machine learning or the command line.
+If you want to use Gradio Interface with Docker, see [YuE-Interface](https://github.com/alisson-anjos/YuE-Interface).
+For **Windows Users**, see [YuE-for-windows](https://github.com/sdbds/YuE-for-windows).
 
 ### 1. Install environment and dependencies
 ~~Make sure properly install flash attention 2 to reduce VRAM usage.~~ 
