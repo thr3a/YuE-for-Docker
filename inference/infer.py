@@ -417,7 +417,7 @@ def main(args):
         return raw_codes
 
     def split_lyrics(lyrics):
-        pattern = r"\[(\w+)\](.*?)\n(?=\[|\Z)"
+        pattern = r"\[(\w+)\](.*?)(?=\[|\Z)"
         segments = re.findall(pattern, lyrics, re.DOTALL)
         structured_lyrics = [f"[{seg[0]}]\n{seg[1].strip()}\n\n" for seg in segments]
         return structured_lyrics
@@ -451,14 +451,14 @@ def main(args):
     # Here is suggested decoding config
     top_p = 0.93
     temperature = 1.0
-    repetition_penalty = 1.2
+    repetition_penalty = 1.0
     # special tokens
     start_of_segment = mmtokenizer.tokenize("[start_of_segment]")
     end_of_segment = mmtokenizer.tokenize("[end_of_segment]")
     # Format text prompt
     run_n_segments = min(args.run_n_segments + 1, len(lyrics))
     raw_output = None
-    for i, p in enumerate(tqdm(prompt_texts[:run_n_segments])):
+    for i, p in enumerate(tqdm(prompt_texts[:run_n_segments], desc="Stage1 inference...")):
         section_text = p.replace("[start_of_segment]", "").replace(
             "[end_of_segment]", ""
         )
