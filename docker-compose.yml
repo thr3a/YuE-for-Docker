@@ -1,0 +1,22 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: yue:latest
+    stop_grace_period: 0s
+    ipc: host
+    tty: true
+    ports:
+      - "7860:7860"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
+    volumes:
+      - "./cache:/root/.cache"
+    command: uv run python -m inference.gradio
+    # command: sleep infinity

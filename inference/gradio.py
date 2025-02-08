@@ -568,4 +568,4 @@ I won't back down""",
     )
 
 if __name__ == "__main__":
-    demo.launch(inbrowser=True)
+    demo.launch(inbrowser=True, server_name='0.0.0.0')

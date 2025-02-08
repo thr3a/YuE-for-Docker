@@ -87,7 +87,7 @@ filelock==3.17.0
     #   triton
 fire==0.7.0
     # via randomname
-flash-attn @ https://github.com/bdashore3/flash-attention/releases/download/v2.7.1.post1/flash_attn-2.7.1.post1+cu124torch2.5.1cxx11abiFALSE-cp310-cp310-win_amd64.whl
+flash-attn @ https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.0.5/flash_attn-2.7.4.post1+cu124torch2.5-cp310-cp310-linux_x86_64.whl
     # via -r ./requirements.txt
 flatten-dict==0.4.2
     # via descript-audiotools
@@ -410,7 +410,7 @@ transformers==4.48.1
     # via
     #   -r ./requirements.txt
     #   peft
-triton @ https://github.com/woct0rdho/triton-windows/releases/download/v3.1.0-windows.post9/triton-3.1.0-cp310-cp310-win_amd64.whl
+# triton @ https://github.com/woct0rdho/triton-windows/releases/download/v3.1.0-windows.post9/triton-3.1.0-cp310-cp310-win_amd64.whl
     # via -r ./requirements.txt
 typer==0.15.1
     # via gradio
